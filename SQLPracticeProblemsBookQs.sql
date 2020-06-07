@@ -133,9 +133,83 @@
 --GROUP BY ShipCountry
 --ORDER BY AvgFreight desc;
 
---Question 27)
+--Question 27) note that the order was placed late in the day, this only covers up to '20151231' at midnight!
 
-SELECT TOP 3 ShipCountry, AverageFreight = AVG(Freight) FROM Orders
-WHERE OrderDate between '20150101' AND '20151231' 
-GROUP BY ShipCountry
-ORDER BY AverageFreight desc;
+--SELECT TOP 3 ShipCountry, AverageFreight = AVG(Freight) FROM Orders
+--WHERE OrderDate between '20150101' AND '20160101' 
+--GROUP BY ShipCountry
+--ORDER BY AverageFreight desc;
+
+--Question 28) !!! Very Key question - I sorta got this, we need to use max to find the last order, then
+--use dateadd to shift back one year
+
+
+--SELECT TOP 3 ShipCountry, AverageFreight = AVG(Freight) FROM Orders
+--WHERE OrderDate > DATEADD(yy, -1, (SELECT MAX(OrderDate) FROM Orders))
+--GROUP BY ShipCountry
+--ORDER BY AverageFreight desc;
+
+--Question 29) !!! Key joining question - Note that all columns must be given a source with the dot notation
+--And remember the join syntax: JOIN [TableName] ON Table1.attribute1 = Table2.attribute1
+
+--SELECT Employees.EmployeeID, Employees.LastName, Orders.OrderID, Products.ProductName, OrderDetails.Quantity FROM Employees
+--JOIN Orders ON Orders.EmployeeID = Employees.EmployeeID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+--JOIN Products ON OrderDetails.ProductID = Products.ProductID
+--ORDER BY Orders.OrderID, Products.ProductID;
+
+--Question 30) Important question - note the value of the left outer join, and that we are chosing 
+-- the customers to be on the left LOJ preserves all the customers !  An inner join would drop them!
+
+--SELECT Customers_CustomerID = Customers.CustomerID, Orders_CustomerID = Orders.CustomerID FROM Customers
+
+--LEFT JOIN Orders ON Orders.customerID = Customers.CustomerID
+
+--WHERE Orders.CustomerID IS NULL;
+
+--Question 31) Very key - think layers of filters to get first all cust/order combos that have ID = 4
+--Then another layer to find customers that are NULL
+
+-- First
+--SELECT Customers.CustomerID, Orders.CustomerID, Orders.EmployeeID FROM Customers
+--LEFT JOIN Orders ON Orders.customerID = Customers.CustomerID
+--AND Orders.EmployeeID = 4
+
+--Second
+
+--SELECT Customers.CustomerID, Orders.CustomerID, Orders.EmployeeID FROM Customers
+--LEFT JOIN Orders ON Orders.customerID = Customers.CustomerID
+--AND Orders.EmployeeID = 4
+--WHERE Orders.CustomerID IS NULL
+
+--Question 32) Another important question in GROUP BY - Here we group on OrderID as well
+--This allows us to only look at orders where the condition holds try commenting out line 196 to see!
+
+--SELECT Customers.CustomerID, Customers.CompanyName, Orders.OrderID, SUM(UnitPrice * Quantity) AS TotalOrderAmount FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+
+--WHERE OrderDate > '20160101'
+--AND OrderDate < '20170101'
+
+--GROUP BY Customers.CustomerID, Customers.CompanyName, Orders.OrderID 
+--HAVING SUM(Quantity * UnitPrice) > 10000
+--ORDER BY TotalOrderAmount desc;
+
+
+--Question 33) In this one we remove some of the groupings, this allows us to look at all the orders rolled up
+-- to each customer! Think drill up/down!!!
+--SELECT Customers.CustomerID, Customers.CompanyName, SUM(UnitPrice * Quantity) AS TotalOrderAmount FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+
+--WHERE OrderDate > '20160101'
+--AND OrderDate < '20170101'
+
+--GROUP BY Customers.CustomerID, Customers.CompanyName
+--HAVING SUM(Quantity * UnitPrice) > 15000
+--ORDER BY TotalOrderAmount desc;
+
+--Question 34)
+
+
