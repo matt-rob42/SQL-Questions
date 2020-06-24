@@ -210,6 +210,279 @@
 --HAVING SUM(Quantity * UnitPrice) > 15000
 --ORDER BY TotalOrderAmount desc;
 
---Question 34)
+--Question 34) Slight modification - look at the changes we made to SELECT and HAVING
+
+--SELECT Customers.CustomerID, Customers.CompanyName, SUM(UnitPrice * Quantity) AS TotalWithoutAmount, 
+--SUM(Quantity * UnitPrice * (1 - Discount)) AS TotalWithDiscount FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+
+--WHERE OrderDate > '20160101'
+--AND OrderDate < '20170101'
+
+--GROUP BY Customers.CustomerID, Customers.CompanyName
+--HAVING SUM(Quantity * UnitPrice * (1 - Discount)) > 10000
+--ORDER BY TotalWithDiscount desc;
+
+--Question 35) Basically got this one - just need the EOMONTH fn and the realization that the condition
+--we wanted was order date = EOM of that date.
+
+--SELECT Employees.EmployeeID, OrderID, OrderDate FROM Employees
+--JOIN Orders ON Employees.EmployeeID = Orders.EmployeeID
+--WHERE OrderDate = EOMONTH(OrderDate)
+--ORDER BY Employees.EmployeeID, Orders.OrderID
+
+--Question 36)
+
+--SELECT TOP 10 OrderID, COUNT(*) AS TotalOrderDetails FROM OrderDetails
+--GROUP BY OrderID
+--ORDER BY TotalOrderDetails desc;
+
+-- Question 37) this works, but may be slower based on stackoverflow comments
+
+--SELECT TOP 2 percent OrderID FROM Orders
+--ORDER BY NewID()
+
+--Question 38)
+--SELECT OrderID, Quantity FROM OrderDetails
+--WHERE Quantity >= 60
+--GROUP BY OrderID, Quantity
+--HAVING COUNT(*) > 1
+
+---- Use the below to understand this query!Or ass COUNT(*) to fields above
+
+--SELECT * FROM OrderDetails
+--WHERE OrderID = 10263
+
+-- Question 39) First question on CTEs! This also uses a subquery - 
+
+--WITH SpecificOrders AS (SELECT OrderID, Quantity FROM OrderDetails
+--WHERE Quantity >= 60
+--GROUP BY OrderID, Quantity
+--HAVING COUNT(*) > 1)                --This is the CTE
+
+--SELECT OrderID, ProductID, UnitPrice, Quantity, Discount
+--FROM OrderDetails
+--WHERE OrderID in (SELECT OrderID FROM SpecificOrders) --This is the subquery on the CTE, returns set of orderIDs
+--ORDER BY OrderID; 
+
+--Question 40) - Query correction Q
+
+--Question 41) Got it, pretty simple query using a simple definition of late
+
+--SELECT OrderID, OrderDate = CONVERT(date,OrderDate), RequiredDate = CONVERT(date, RequiredDate),  
+--ShippedDate = CONVERT(date, ShippedDate) FROM Orders
+--WHERE ShippedDate >= RequiredDate
+--ORDER BY OrderID;
+
+--Question 42) A fairly standard GROUP BY
+
+--SELECT Employees.EmployeeID , LastName, COUNT(*) AS TotalLateOrders FROM Orders
+--JOIN Employees ON Orders.EmployeeID = Employees.EmployeeID
+--WHERE ShippedDate >= RequiredDate
+--GROUP BY Employees.EmployeeID, Employees.LastName
+--ORDER BY TotalLateOrders desc
+
+--Question 43) Double CTE, greatly simplifes final query
+
+--WITH All_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS TotalOrders FROM Orders
+--GROUP BY EmployeeID), --NOTE the way multiple CTEs are formatted
+
+--LATE_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS LateOrders FROM Orders
+--WHERE RequiredDate <= ShippedDate
+--GROUP BY EmployeeID)
+
+--SELECT Employees.EmployeeID, LastName, All_Orders=All_Orders.TotalOrders, LATE_Orders = LATE_Orders.LateOrders FROM Employees
+--JOIN All_Orders ON Employees.EmployeeID = All_Orders.EmployeeID
+--JOIN LATE_Orders ON Employees.EmployeeID = LATE_Orders.EmployeeID;
+
+-- Question 44) Fixing a query Q
+
+--WITH All_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS TotalOrders FROM Orders
+--GROUP BY EmployeeID), --NOTE the way multiple CTEs are formatted
+
+--LATE_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS LateOrders FROM Orders
+--WHERE RequiredDate <= ShippedDate
+--GROUP BY EmployeeID)
+
+--SELECT Employees.EmployeeID, LastName, All_Orders=All_Orders.TotalOrders, LATE_Orders = LATE_Orders.LateOrders FROM Employees
+--LEFT OUTER JOIN All_Orders ON Employees.EmployeeID = All_Orders.EmployeeID
+--LEFT OUTER JOIN LATE_Orders ON Employees.EmployeeID = LATE_Orders.EmployeeID;
+
+-- Question 45) could do this with simple IS NULL, or a CASE
+--WITH All_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS TotalOrders FROM Orders
+--GROUP BY EmployeeID), --NOTE the way multiple CTEs are formatted
+
+--LATE_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS LateOrders FROM Orders
+--WHERE RequiredDate <= ShippedDate
+--GROUP BY EmployeeID)
+
+--SELECT Employees.EmployeeID, LastName, All_Orders=All_Orders.TotalOrders, LATE_Orders = ISNULL(LATE_Orders.LateOrders, 0) FROM Employees
+--LEFT OUTER JOIN All_Orders ON Employees.EmployeeID = All_Orders.EmployeeID
+--LEFT OUTER JOIN LATE_Orders ON Employees.EmployeeID = LATE_Orders.EmployeeID;
+
+-- USING CASE WOULD BE: Late_Orders = CASE WHEN LATE_Orders.LateOrders IS NULL THEN O ELSE LATE_Orders.LateOrders) END
+
+--Question 46)
+
+--WITH All_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS TotalOrders FROM Orders
+--GROUP BY EmployeeID), --NOTE the way multiple CTEs are formatted
+
+--LATE_Orders AS (SELECT Orders.EmployeeID, COUNT(*) AS LateOrders FROM Orders
+--WHERE RequiredDate <= ShippedDate
+--GROUP BY EmployeeID)
+
+--SELECT Employees.EmployeeID, LastName, All_Orders=All_Orders.TotalOrders, LATE_Orders = ISNULL(LATE_Orders.LateOrders, 0),
+--Percent_Late_Orders = ISNULL((CONVERT(float, LATE_Orders.LateOrders)/CONVERT(float, All_Orders.TotalOrders)), 0.0000) FROM Employees
+--LEFT OUTER JOIN All_Orders ON Employees.EmployeeID = All_Orders.EmployeeID
+--LEFT OUTER JOIN LATE_Orders ON Employees.EmployeeID = LATE_Orders.EmployeeID;
+
+-- Question 48)
+
+--SELECT Customers.CustomerID, Customers.CompanyName, SUM(UnitPrice * Quantity) AS TotalOrderAmount,
+--Customer_Group = CASE WHEN SUM(UnitPrice * Quantity) < 1000 THEN 'Low' WHEN SUM(UnitPrice * Quantity) < 5000 THEN 'Medium'
+--WHEN SUM(UnitPrice * Quantity) < 10000 THEN 'High' ELSE 'Very High' END FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+
+--WHERE OrderDate > '20160101'
+--AND OrderDate < '20170101'
+
+--GROUP BY Customers.CustomerID, Customers.CompanyName
+--ORDER BY TotalOrderAmount desc;
+
+-- Question 49) Got this by default using my way of <>
+
+--SELECT Customers.CustomerID, Customers.CompanyName, SUM(UnitPrice * Quantity) AS TotalOrderAmount,
+--Customer_Group = CASE WHEN SUM(UnitPrice * Quantity) < 1000 THEN 'Low' WHEN SUM(UnitPrice * Quantity) < 5000 THEN 'Medium'
+--WHEN SUM(UnitPrice * Quantity) < 10000 THEN 'High' ELSE 'Very High' END FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+
+--WHERE OrderDate > '20160101'
+--AND OrderDate < '20170101'
+
+--GROUP BY Customers.CustomerID, Customers.CompanyName
+--ORDER BY TotalOrderAmount desc;
+
+-- Question 50)  This is a key question - let's break it down - it uses two CTEs, which act as a 
+-- series of sucessive filters. Once the data is correctly filtered, we select the columns we want.
+-- This is just our basic table - creating our new column, filtering on year.
+--WITH Orders2016 AS (
+--SELECT Customers.CustomerID, Customers.CompanyName, TotalOrderAmount = SUM(Quantity * UnitPrice)
+--FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+--WHERE OrderDate >= '20160101'
+--AND OrderDate < '20170101'
+--GROUP BY Customers.CustomerID, Customers.CompanyName),
+---- Now, we add a grouping column that will divide the customers into buckets
+--CustomerGrouping AS (
+--SELECT CustomerID, CompanyName, TotalOrderAmount, CustomerGroup = 
+--CASE WHEN TotalOrderAmount < 1000 THEN 'Low'
+--WHEN TotalOrderAmount < 5000 THEN 'Medium'
+--WHEN TotalOrderAmount < 10000 THEN 'High'
+--WHEN TotalOrderAmount > 10000 THEN 'Very High' END
+--FROM Orders2016 ) -- Selecting this from the previous table!
+
+--SELECT CustomerGroup, TotalInGroup = COUNT(*), PercentageInGroup = COUNT(*) * 1.0 / (SELECT COUNT(*) FROM
+--CustomerGrouping)  --This is some kind of subquery that returns the total size of table!
+--FROM CustomerGrouping
+--GROUP BY CustomerGroup
+--ORDER BY TotalInGroup;
+
+-- Question 51) 
+
+--WITH Orders2016 AS (
+--SELECT Customers.CustomerID, Customers.CompanyName, TotalOrderAmount = SUM(Quantity * UnitPrice)
+--FROM Customers
+--JOIN Orders ON Orders.CustomerID = Customers.CustomerID
+--JOIN OrderDetails ON Orders.OrderID = OrderDetails.OrderID
+--WHERE OrderDate >= '20160101'
+--AND OrderDate < '20170101'
+--GROUP BY Customers.CustomerID, Customers.CompanyName),
+---- Now, we add a grouping column that will divide the customers into buckets
+--CustomerGrouping AS (
+--SELECT CustomerID, CompanyName, 
+--Percent_Rank = (SELECT TotalOrderAmount, PERCENT_RANK() OVER(ORDER BY TotalOrderAmount)),
+--TotalOrderAmount, 
+--CustomerGroup = 
+--CASE WHEN TotalOrderAmount < 1000 THEN 'Low'
+--WHEN TotalOrderAmount < 5000 THEN 'Medium'
+--WHEN TotalOrderAmount < 10000 THEN 'High'
+--WHEN TotalOrderAmount > 10000 THEN 'Very High' END
+--FROM Orders2016 ) -- Selecting this from the previous table!
+
+--SELECT CustomerGroup, TotalInGroup = COUNT(*), PercentageInGroup = COUNT(*) * 1.0 / (SELECT COUNT(*) FROM
+--CustomerGrouping)  --This is some kind of subquery that returns the total size of table!
+--FROM CustomerGrouping
+--GROUP BY CustomerGroup
+--ORDER BY TotalInGroup;
 
 
+-- Question 52) This is a nice simple example of a union clause - we get the columns from two tables, and combine them
+-- Here we're using union, which eliminates dups, we could also use UNION ALL, which preserves them
+
+--SELECT Suppliers.Country FROM Suppliers
+--UNION
+--SELECT Customers.Country FROM Customers
+
+-- Question 53) This is an interesting one, using two CTEs for ease of reading, and an outer join to preserve all values from each row
+--WITH CustomerCountries AS (SELECT DISTINCT Country FROM Customers),
+
+--SupplierCountries AS (SELECT DISTINCT Country FROM Suppliers)
+
+--SELECT CustomerCountry = CustomerCountries.Country, SupplierCountry = SupplierCountries.Country FROM SupplierCountries
+--FULL OUTER JOIN CustomerCountries ON SupplierCountries.Country = CustomerCountries.Country
+
+-- Question 54) 
+
+--WITH CustomerCountries AS (SELECT Country, Total = COUNT(*) FROM Customers GROUP BY COUNTRY),
+
+--SupplierCountries AS (SELECT Country, Total = COUNT(*) FROM Suppliers GROUP BY Country)
+
+--SELECT Country = ISNULL(SupplierCountries.Country, CustomerCountries.Country),
+--TotalSuppliers = ISNULL(SupplierCountries.Total, 0),
+--TotalCustomers = ISNULL(CustomerCountries.Total, 0)
+--FROM SupplierCountries
+--FULL OUTER JOIN CustomerCountries ON SupplierCountries.Country = CustomerCountries.Country
+
+-- Question 55) This is a key use of the ranking functions - a special function that allows us to assign rankings to groups, we can partition these 
+-- groups as desired - here we're using it to find rank the orders in each country. We're taking advantage of the fact that the default ordering is 
+-- oldest -> newest date, and taking the first item from each partition
+
+--With OrdersByCountry AS (SELECT ShipCountry, CustomerID, OrderID, Date =CONVERT(Date, OrderDate), 
+---- First we set up a CTE with all the key data - including columns we don't want in final select
+--RowNumberPerCountry = ROW_NUMBER() OVER(PARTITION BY ShipCountry ORDER BY ShipCountry, OrderID )
+---- Here is the row numbering - note how we're chosing the columns to partition on!
+--FROM Orders)
+
+--SELECT ShipCountry, CustomerID, OrderID, Date FROM OrdersByCountry
+--WHERE RowNumberPerCountry = 1 -- This is just selecting first from each partition
+--ORDER BY ShipCountry
+
+-- Question 56) - Example of a self join! Actually pretty self explanatory - need to do more research
+-- So seems like a cartesian product - we want to compare all orders against each other - so need to form all pairs
+
+--SELECT InitialOrder.CustomerID, InitialOrderID = InitialOrder.OrderID,InitialOrderDate = CONVERT(DATE, InitialOrder.OrderDate),
+--NextOrderID = NextOrder.OrderID, NextOrderDate = CONVERT(DATE, NextOrder.OrderDate), DaysBetweenOrders = DATEDIFF(dd, InitialOrder.OrderDate, 
+--NextOrder.OrderDate)
+--FROM Orders InitialOrder
+--JOIN Orders NextOrder ON InitialOrder.CustomerID = NextOrder.CustomerID
+--WHERE InitialOrder.OrderID < NextOrder.OrderID
+--AND DATEDIFF(dd, InitialOrder.OrderDate, NextOrder.OrderDate) <= 5
+--ORDER BY InitialOrder.CustomerID, InitialOrder.OrderID;
+
+-- Digression on the self join - it is highly useful in certain scenarios for example, if we have a table of employees, each with a manager field 
+-- A self join on managerID = empID will show us who manages who - very useful with self-referencing hirar. data
+-- Also handy here as a way to compare columns of the same table - for example, checking each pair of orders to see if there is a less
+-- than 5 day spread.
+
+-- Question 57) This is another great example of a window function - we're using lead to find the next order, and comparing it to find any with
+-- a spacing greater than 5
+WITH NextOrderDate AS (SELECT CustomerID, OrderDate = CONVERT(date, OrderDate), 
+NextOrderDate = CONVERT(DATE, LEAD(OrderDate, 1) OVER (PARTITION BY CustomerID ORDER BY CustomerID, OrderDate))
+FROM Orders)
+SELECT CustomerID, OrderDate, NextOrderDate, DaysBetweenOrders = DateDiff(dd, OrderDate, NextOrderDate)
+FROM NextOrderDate
+WHERE DateDiff(dd, OrderDate, NextOrderDate) <= 5
